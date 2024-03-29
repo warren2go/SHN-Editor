@@ -6,6 +6,7 @@ using System.IO;
 using System.Data;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.ComponentModel;
 
 namespace SHNDecrypt
 {
@@ -525,76 +526,149 @@ namespace SHNDecrypt
 
         private void ReadRows(BinaryReaderEx r, DataTable table)
         {
-            object[] values = new object[columns.Count];
-            for (uint i = 0; i < RecordCount; i++)
+            var values = new object[columns.Count];
+            for (var i = 0; i < RecordCount; i++)
             {
-                r.ReadUInt16();
-                for (int j = 0; j < columns.Count; j++)
+                var rowLength = r.ReadUInt16() - 2;
+                for (var j = 0; j < columns.Count; j++)
                 {
                     switch (this.columns[j].Type)
                     {
                         case 1:
                             values[j] = r.ReadByte();
+                            rowLength -= 1;
                             break;
 
                         case 2:
                             values[j] = r.ReadUInt16();
+                            rowLength -= 2;
                             break;
 
                         case 3:
                             values[j] = r.ReadUInt32();
+                            rowLength -= 4;
+                            break;
+
+                        case 4:
+                            values[j] = r.ReadUInt64();
+                            rowLength -= 8;
                             break;
 
                         case 5:
                             values[j] = r.ReadSingle();
+                            rowLength -= 4;
                             break;
 
+                        case 6:
+                        case 7:
+                        case 8:
                         case 9:
-                            values[j] = r.ReadString(this.ColumnLengths[j]);
+                        case 10:
+                            values[j] = r.ReadString(ColumnLengths[j]);
+                            rowLength -= ColumnLengths[j];
                             break;
 
                         case 11:
                             values[j] = r.ReadUInt32();
+                            rowLength -= 4;
                             break;
 
                         case 12:
                             values[j] = r.ReadByte();
+                            rowLength -= 1;
                             break;
 
                         case 13:
                             values[j] = r.ReadInt16();
+                            rowLength -= 2;
                             break;
 
-                        case 0x10:
-                            values[j] = r.ReadByte();
-                            break;
-
-                        case 0x12:
+                        case 14:
                             values[j] = r.ReadUInt32();
+                            rowLength -= 4;
+                            break;
+
+                        case 15:
+                            values[j] = r.ReadUInt64();
+                            rowLength -= 8;
+                            break;
+
+                        case 16:
+                            values[j] = r.ReadByte();
+                            rowLength -= 1;
+                            break;
+
+                        case 17:
+                            values[j] = r.ReadUInt16();
+                            rowLength -= 2;
+                            break;
+
+                        case 18:
+                            values[j] = r.ReadUInt32();
+                            rowLength -= 4;
+                            break;
+
+                        case 19:
+                            values[j] = r.ReadUInt64();
+                            rowLength -= 8;
                             break;
 
                         case 20:
                             values[j] = r.ReadSByte();
+                            rowLength -= 1;
                             break;
 
-                        case 0x15:
+                        case 21:
                             values[j] = r.ReadInt16();
+                            rowLength -= 2;
                             break;
 
-                        case 0x16:
+                        case 22:
                             values[j] = r.ReadInt32();
+                            rowLength -= 4;
                             break;
 
-                        case 0x18:
-                            values[j] = r.ReadString(this.ColumnLengths[j]);
+                        case 23:
+                            values[j] = r.ReadInt64();
+                            rowLength -= 8;
                             break;
 
-                        case 0x1a: //unk lenght
-                            values[j] = r.ReadString();
+                        case 24:
+                        case 25:
+                            values[j] = r.ReadString(ColumnLengths[j]);
+                            rowLength -= ColumnLengths[j];
                             break;
 
-                        case 0x1b:
+                        case 26:
+                            values[j] = r.ReadString(rowLength);
+                            rowLength -= rowLength;
+                            break;
+
+                        case 27:
                             values[j] = r.ReadUInt32();
+                            rowLength -= 4;
+                            break;
+
+                        case 28:
+                            values[j] = r.ReadUInt32();
+                            rowLength -= 4;
+                            continue;
+
+                        case 29:
+                            if (ColumnLengths[j] == 8)
+                            {
+                                values[j] = $@"{r.ReadUInt32()}-{r.ReadUInt32()}";
+                                rowLength -= 8;
+                            }
+                            else
+                            {
+                                values[j] = r.ReadUInt32();
+                                rowLength -= 4;
+                            }
+                            break;
+
+                        default:
+                            rowLength -= 1;
                             break;
                     }
                 }
@@ -618,33 +692,36 @@ namespace SHNDecrypt
             switch (col.Type)
             {
                 default:
-                    return typeof(object);
-                case 1:
-                case 12:
-                    return typeof(byte);
-                case 2:
-                    return typeof(UInt16);
-                case 3:
-                case 11:
-                    return typeof(UInt32);
-                case 5:
-                    return typeof(Single);
-                case 0x15:
-                case 13:
-                    return typeof(Int16);
-                case 0x10:
-                    return typeof(byte);
-                case 0x12:
-                case 0x1b:
-                    return typeof(UInt32);
-                case 20:
-                    return typeof(SByte);
-                case 0x16:
-                    return typeof(Int32);
-                case 0x18:
-                case 0x1a:
+                case 0: return typeof(Object);
+                case 1: return typeof(Byte);
+                case 2: return typeof(UInt16);
+                case 3: return typeof(UInt32);
+                case 4: return typeof(UInt64);
+                case 5: return typeof(float);
+                case 6:
+                case 7:
+                case 8:
                 case 9:
-                    return typeof(string);
+                case 10: return typeof(String);
+                case 11: return typeof(UInt32);
+                case 12: return typeof(Byte);
+                case 13: return typeof(UInt16);
+                case 14: return typeof(UInt32);
+                case 15: return typeof(UInt64);
+                case 16: return typeof(Byte);
+                case 17: return typeof(UInt16);
+                case 18: return typeof(UInt32);
+                case 19: return typeof(UInt64);
+                case 20: return typeof(Byte);
+                case 21: return typeof(UInt16);
+                case 22: return typeof(UInt32);
+                case 23: return typeof(UInt64);
+                case 24: return typeof(String);
+                case 25: return typeof(String);
+                case 26: return typeof(String);
+                case 27: return typeof(UInt32);
+                case 28: return typeof(Object);
+                case 29: return typeof(String);
             }
         }
 
